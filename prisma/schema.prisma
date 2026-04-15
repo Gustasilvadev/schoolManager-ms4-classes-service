@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model class_disciplines {
+  class_discipline_id Int         @id @default(autoincrement())
+  class_id            Int
+  discipline_id       Int
+  classes             classes     @relation(fields: [class_id], references: [class_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_class_discipline_key_1")
+  disciplines         disciplines @relation(fields: [discipline_id], references: [discipline_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_class_discipline_key_2")
+
+  @@index([class_id], map: "fk_class_discipline_id_idx")
+  @@index([discipline_id], map: "fk_class_discipline_key_2_idx")
+}
+
+model class_students {
+  class_student_id Int     @id @default(autoincrement())
+  class_id         Int
+  student_id       Int
+  classes          classes @relation(fields: [class_id], references: [class_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_class_students_key")
+
+  @@index([class_id], map: "fk_class_id_idx")
+}
+
+model class_teachers {
+  class_teachers_id Int     @id @default(autoincrement())
+  class_id          Int
+  teacher_id        Int
+  classes           classes @relation(fields: [class_id], references: [class_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_class_teacher_key_1")
+
+  @@index([class_id], map: "fk_class_teacher_key_1_idx")
+}
+
+model classes {
+  class_id          Int                 @id @default(autoincrement())
+  class_name        String              @db.VarChar(45)
+  class_school_year String              @db.VarChar(45)
+  class_status      Int
+  class_disciplines class_disciplines[]
+  class_students    class_students[]
+  class_teachers    class_teachers[]
+}
+
+model disciplines {
+  discipline_id     Int                 @id @default(autoincrement())
+  discipline_name   String              @db.VarChar(45)
+  discipline_hour   Int
+  discipline_status Int
+  class_disciplines class_disciplines[]
+}
