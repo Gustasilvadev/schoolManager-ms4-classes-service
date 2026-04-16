@@ -1,0 +1,738 @@
+openapi: 3.0.0
+info:
+  title: API do SchoolManager - ClassesService
+  description: |
+    Serviço de Gestão de Turmas, Disciplinas, Matrículas e Alocações de Professores.
+    Apenas administradores autenticados podem acessar os endpoints.
+  version: 1.0.0
+  contact:
+    name: Suporte SchoolManager
+    email: suporte@schoolmanager.com
+
+servers:
+  - url: http://localhost:3004/api
+    description: Servidor de Desenvolvimento
+
+tags:
+  - name: Health
+    description: Verificação de saúde do serviço
+  - name: Classes
+    description: CRUD de turmas
+  - name: Enrollments
+    description: Matrícula e remoção de alunos em turmas
+  - name: TeacherAssignments
+    description: Alocação e remoção de professores em turmas
+  - name: ClassDisciplines
+    description: Associação de disciplinas a turmas
+  - name: Disciplines
+    description: CRUD de disciplinas
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Class:
+      type: object
+      properties:
+        class_id:
+          type: integer
+          example: 1
+        class_name:
+          type: string
+          example: "Turma A"
+        class_school_year:
+          type: string
+          example: "2026"
+        class_status:
+          type: integer
+          enum: [0, 1, 2]
+          example: 1
+    Discipline:
+      type: object
+      properties:
+        discipline_id:
+          type: integer
+          example: 1
+        discipline_name:
+          type: string
+          example: "Matemática"
+        discipline_hour:
+          type: integer
+          example: 80
+        discipline_status:
+          type: integer
+          enum: [0, 1, 2]
+          example: 1
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    ListClassesResponse:
+      type: object
+      properties:
+        classes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Class'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+    ListDisciplinesResponse:
+      type: object
+      properties:
+        disciplines:
+          type: array
+          items:
+            $ref: '#/components/schemas/Discipline'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+paths:
+  # ==================== HEALTH ====================
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Verifica saúde do serviço
+      responses:
+        '200':
+          description: Serviço operacional
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  service:
+                    type: string
+                    example: "classes-service"
+
+  # ==================== TURMAS (CLASSES) ====================
+  /classes/listClasses:
+    get:
+      tags:
+        - Classes
+      summary: Lista turmas com paginação e filtros
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: class_name
+          in: query
+          schema:
+            type: string
+        - name: class_school_year
+          in: query
+          schema:
+            type: string
+        - name: class_status
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1, 2]
+      responses:
+        '200':
+          description: Lista de turmas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListClassesResponse'
+        '401':
+          description: Token inválido
+        '403':
+          description: Acesso negado
+
+  /classes/createClass:
+    post:
+      tags:
+        - Classes
+      summary: Cria uma nova turma
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - class_name
+                - class_school_year
+              properties:
+                class_name:
+                  type: string
+                  maxLength: 45
+                class_school_year:
+                  type: string
+                  maxLength: 45
+                class_status:
+                  type: integer
+                  default: 1
+                  enum: [0, 1, 2]
+      responses:
+        '201':
+          description: Turma criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Class'
+        '400':
+          description: Dados inválidos
+
+  /classes/listClasseById/{id}:
+    get:
+      tags:
+        - Classes
+      summary: Busca turma por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Dados da turma
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Class'
+        '404':
+          description: Turma não encontrada
+
+  /classes/updateClassById/{id}:
+    put:
+      tags:
+        - Classes
+      summary: Atualiza dados da turma
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                class_name:
+                  type: string
+                class_school_year:
+                  type: string
+                class_status:
+                  type: integer
+                  enum: [0, 1, 2]
+      responses:
+        '200':
+          description: Turma atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Class'
+        '404':
+          description: Turma não encontrada
+
+  /classes/deleteClassById/{id}:
+    delete:
+      tags:
+        - Classes
+      summary: Exclusão lógica da turma
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Turma desativada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Turma não encontrada
+
+  # ==================== MATRÍCULAS (ENROLLMENTS) ====================
+  /classes/enroll/{id}:
+    post:
+      tags:
+        - Enrollments
+      summary: Matricula um aluno na turma
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - student_id
+              properties:
+                student_id:
+                  type: integer
+      responses:
+        '201':
+          description: Matrícula realizada
+        '400':
+          description: Aluno já matriculado ou dados inválidos
+        '404':
+          description: Turma não encontrada
+
+  /classes/enroll/{id}/{studentId}:
+    delete:
+      tags:
+        - Enrollments
+      summary: Remove um aluno da turma
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Aluno removido da turma
+        '404':
+          description: Turma ou matrícula não encontrada
+
+  /classes/students/{id}:
+    get:
+      tags:
+        - Enrollments
+      summary: Lista alunos matriculados na turma
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de matrículas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    student_id:
+                      type: integer
+                    class_id:
+                      type: integer
+
+  # ==================== ALOCAÇÃO DE PROFESSORES (TEACHER ASSIGNMENTS) ====================
+  /classes/assignTeacher/{id}:
+    post:
+      tags:
+        - TeacherAssignments
+      summary: Aloca um professor na turma
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - teacher_id
+              properties:
+                teacher_id:
+                  type: integer
+      responses:
+        '201':
+          description: Professor alocado
+        '400':
+          description: Professor já alocado
+        '404':
+          description: Turma não encontrada
+
+  /classes/assignTeacher/{id}/{teacherId}:
+    delete:
+      tags:
+        - TeacherAssignments
+      summary: Remove alocação de professor da turma
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: teacherId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Professor removido da turma
+        '404':
+          description: Turma ou alocação não encontrada
+
+  /classes/teachers/{id}:
+    get:
+      tags:
+        - TeacherAssignments
+      summary: Lista professores alocados na turma
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de alocações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    teacher_id:
+                      type: integer
+                    class_id:
+                      type: integer
+
+  # ==================== DISCIPLINAS POR TURMA (CLASS DISCIPLINES) ====================
+  /classes/disciplines/{id}:
+    post:
+      tags:
+        - ClassDisciplines
+      summary: Associa uma disciplina à turma
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - discipline_id
+              properties:
+                discipline_id:
+                  type: integer
+      responses:
+        '201':
+          description: Disciplina associada
+        '400':
+          description: Disciplina já associada
+        '404':
+          description: Turma não encontrada
+
+    get:
+      tags:
+        - ClassDisciplines
+      summary: Lista disciplinas associadas à turma
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de disciplinas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    discipline_id:
+                      type: integer
+                    discipline_name:
+                      type: string
+                    discipline_hour:
+                      type: integer
+
+  /classes/disciplines/{id}/{disciplineId}:
+    delete:
+      tags:
+        - ClassDisciplines
+      summary: Remove associação de disciplina da turma
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: disciplineId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Disciplina removida da turma
+        '404':
+          description: Turma ou associação não encontrada
+
+  # ==================== DISCIPLINAS (DISCIPLINES) ====================
+  /disciplines/listDisciplines:
+    get:
+      tags:
+        - Disciplines
+      summary: Lista disciplinas com paginação e filtros
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: discipline_name
+          in: query
+          schema:
+            type: string
+        - name: discipline_status
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1, 2]
+      responses:
+        '200':
+          description: Lista de disciplinas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListDisciplinesResponse'
+        '401':
+          description: Token inválido
+        '403':
+          description: Acesso negado
+
+  /disciplines/createDiscipline:
+    post:
+      tags:
+        - Disciplines
+      summary: Cria uma nova disciplina
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - discipline_name
+                - discipline_hour
+              properties:
+                discipline_name:
+                  type: string
+                  maxLength: 45
+                discipline_hour:
+                  type: integer
+                  minimum: 1
+                discipline_status:
+                  type: integer
+                  default: 1
+                  enum: [0, 1, 2]
+      responses:
+        '201':
+          description: Disciplina criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discipline'
+        '400':
+          description: Dados inválidos
+
+  /disciplines/listDisciplineById/{id}:
+    get:
+      tags:
+        - Disciplines
+      summary: Busca disciplina por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Dados da disciplina
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discipline'
+        '404':
+          description: Disciplina não encontrada
+
+  /disciplines/updateDisciplineById/{id}:
+    put:
+      tags:
+        - Disciplines
+      summary: Atualiza disciplina
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discipline_name:
+                  type: string
+                discipline_hour:
+                  type: integer
+                discipline_status:
+                  type: integer
+                  enum: [0, 1, 2]
+      responses:
+        '200':
+          description: Disciplina atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discipline'
+        '404':
+          description: Disciplina não encontrada
+
+  /disciplines/deleteDisciplineById/{id}:
+    delete:
+      tags:
+        - Disciplines
+      summary: Exclusão lógica da disciplina
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Disciplina desativada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Disciplina não encontrada
+
+  /disciplines/discipline/{id}/classes:
+    get:
+      tags:
+        - Disciplines
+      summary: Lista turmas que possuem essa disciplina
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de associações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    class_id:
+                      type: integer
+                    class_name:
+                      type: string
+                    class_school_year:
+                      type: string
