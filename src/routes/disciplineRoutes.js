@@ -16,6 +16,6 @@ router.get('/listDisciplineById/:id', disciplineController.getDisciplineById);
 router.post('/createDiscipline', validateCreateDiscipline, disciplineController.createDiscipline);
 router.put('/updateDisciplineById/:id', validateUpdateDiscipline, disciplineController.updateDiscipline);
 router.delete('/deleteDisciplineById/:id', disciplineController.deleteDiscipline);
-router.get('/discipline/:id/classes', disciplineController.getClassesByDiscipline);
+router.get('/listClassesByDisciplineId/:id', disciplineController.getClassesByDiscipline);
 
 module.exports = router;

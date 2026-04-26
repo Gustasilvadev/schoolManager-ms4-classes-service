@@ -7,10 +7,9 @@ const authMiddleware = (req, res, next) => {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({ error: MESSAGES.TOKEN_MISSING });
   }
 
-const decoded = verifyToken(token);
+  const decoded = verifyToken(token);
   if (!decoded) {
-    console.log('Falha na verificação do token');
-  return res.status(HTTP_STATUS.UNAUTHORIZED).json({ error: MESSAGES.TOKEN_INVALID });
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({ error: MESSAGES.TOKEN_INVALID });
   }
 
   req.user = decoded;

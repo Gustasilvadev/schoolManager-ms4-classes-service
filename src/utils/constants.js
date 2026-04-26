@@ -28,6 +28,7 @@ module.exports = {
     TEACHER_NOT_FOUND: 'Professor não encontrado',
     STUDENT_ALREADY_ENROLLED: 'Aluno já está matriculado nesta turma',
     TEACHER_ALREADY_ASSIGNED: 'Professor já está alocado nesta turma',
+    TEACHER_NOT_QUALIFIED: 'Professor não está habilitado em nenhuma disciplina desta turma',
     DISCIPLINE_ALREADY_IN_CLASS: 'Disciplina já está associada a esta turma',
     INVALID_DATA: 'Dados inválidos',
     REQUIRED_FIELD: 'Campo obrigatório não preenchido'

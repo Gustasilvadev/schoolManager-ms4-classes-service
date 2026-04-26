@@ -11,30 +11,35 @@ const {
   validateAddDisciplineToClass
 } = require('../middlewares/validationMiddleware');
 
-// Todas as rotas exigem autenticação e role ADMIN
+// Endpoint interno (serviço-a-serviço) — consumido pelo MS5 para validar se um
+// professor leciona uma class_discipline.
+router.get('/checkTeacherAccess/:teacherId/:classDisciplineId', classController.checkTeacherAccess);
+
 router.use(authMiddleware);
-router.use(roleMiddleware(['ADMIN']));
 
-// CRUD Turmas
-router.get('/listClasses', classController.getAllClasses);
-router.get('/listClasseById/:id', classController.getClassById);
-router.post('/createClass', validateCreateClass, classController.createClass);
-router.put('/updateClassById/:id', validateUpdateClass, classController.updateClass);
-router.delete('/deleteClassById/:id', classController.deleteClass);
+const ADMIN_ONLY = roleMiddleware(['ADMIN']);
+const ADMIN_OR_TEACHER = roleMiddleware(['ADMIN', 'TEACHER']);
 
-// Matrícula de Alunos
-router.post('/enroll/:id', validateEnrollStudent, classController.enrollStudent);
-router.delete('/enroll/:id/:studentId', classController.unenrollStudent);
-router.get('/students/:id', classController.getStudentsByClass);
+// CRUD Turmas — leitura: ADMIN ou TEACHER (TEACHER só vê suas turmas, filtrado no controller).
+router.get('/listClasses', ADMIN_OR_TEACHER, classController.getAllClasses);
+router.get('/listClassById/:id', ADMIN_OR_TEACHER, classController.getClassById);
+router.post('/createClass', ADMIN_ONLY, validateCreateClass, classController.createClass);
+router.put('/updateClassById/:id', ADMIN_ONLY, validateUpdateClass, classController.updateClass);
+router.delete('/deleteClassById/:id', ADMIN_ONLY, classController.deleteClass);
 
-// Alocação de Professores
-router.post('/assignTeacher/:id', validateAssignTeacher, classController.assignTeacher);
-router.delete('/assignTeacher/:id/:teacherId', classController.unassignTeacher);
-router.get('/teachers/:id', classController.getTeachersByClass);
+// Matrícula de Alunos — leitura permite TEACHER da turma; mutações ADMIN.
+router.post('/enroll/:id', ADMIN_ONLY, validateEnrollStudent, classController.enrollStudent);
+router.delete('/enroll/:id/:studentId', ADMIN_ONLY, classController.unenrollStudent);
+router.get('/students/:id', ADMIN_OR_TEACHER, classController.getStudentsByClass);
 
-// Disciplinas por Turma
-router.post('/disciplines/:id', validateAddDisciplineToClass, classController.addDisciplineToClass);
-router.delete('/disciplines/:id/:disciplineId', classController.removeDisciplineFromClass);
-router.get('/disciplines/:id', classController.getDisciplinesByClass);
+// Alocação de Professores — leitura permite TEACHER da turma; mutações ADMIN.
+router.post('/assignTeacher/:id', ADMIN_ONLY, validateAssignTeacher, classController.assignTeacher);
+router.delete('/assignTeacher/:id/:teacherId', ADMIN_ONLY, classController.unassignTeacher);
+router.get('/teachers/:id', ADMIN_OR_TEACHER, classController.getTeachersByClass);
+
+// Disciplinas por Turma — leitura permite TEACHER da turma; mutações ADMIN.
+router.post('/disciplines/:id', ADMIN_ONLY, validateAddDisciplineToClass, classController.addDisciplineToClass);
+router.delete('/disciplines/:id/:disciplineId', ADMIN_ONLY, classController.removeDisciplineFromClass);
+router.get('/disciplines/:id', ADMIN_OR_TEACHER, classController.getDisciplinesByClass);
 
 module.exports = router;

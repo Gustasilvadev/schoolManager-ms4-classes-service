@@ -202,7 +202,7 @@ paths:
         '400':
           description: Dados inválidos
 
-  /classes/listClasseById/{id}:
+  /classes/listClassById/{id}:
     get:
       tags:
         - Classes
@@ -707,7 +707,7 @@ paths:
         '404':
           description: Disciplina não encontrada
 
-  /disciplines/discipline/{id}/classes:
+  /disciplines/listClassesByDisciplineId/{id}:
     get:
       tags:
         - Disciplines

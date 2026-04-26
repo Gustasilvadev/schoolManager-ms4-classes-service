@@ -18,7 +18,7 @@ const getAllClasses = async (req, res, next) => {
     if (class_name) filters.class_name = class_name;
     if (class_school_year) filters.class_school_year = class_school_year;
     if (class_status !== undefined) filters.class_status = parseInt(class_status);
-    const result = await classService.getAllClasses(filters, parseInt(page), parseInt(limit));
+    const result = await classService.getAllClasses(filters, parseInt(page), parseInt(limit), req.user);
     return res.status(HTTP_STATUS.OK).json(result);
   } catch (error) {
     next(error);
@@ -28,11 +28,14 @@ const getAllClasses = async (req, res, next) => {
 const getClassById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const classData = await classService.getClassById(parseInt(id));
+    const classData = await classService.getClassById(parseInt(id), req.user);
     return res.status(HTTP_STATUS.OK).json(classData);
   } catch (error) {
     if (error.message === MESSAGES.CLASS_NOT_FOUND) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({ error: error.message });
+    }
+    if (error.message === MESSAGES.FORBIDDEN) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ error: error.message });
     }
     next(error);
   }
@@ -99,11 +102,14 @@ const unenrollStudent = async (req, res, next) => {
 const getStudentsByClass = async (req, res, next) => {
   try {
     const classId = parseInt(req.params.id);
-    const students = await classService.getStudentsByClass(classId);
+    const students = await classService.getStudentsByClass(classId, req.user);
     return res.status(HTTP_STATUS.OK).json(students);
   } catch (error) {
     if (error.message === MESSAGES.CLASS_NOT_FOUND) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({ error: error.message });
+    }
+    if (error.message === MESSAGES.FORBIDDEN) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ error: error.message });
     }
     next(error);
   }
@@ -120,7 +126,7 @@ const assignTeacher = async (req, res, next) => {
     if (error.message === MESSAGES.CLASS_NOT_FOUND || error.message === 'Professor não está alocado nesta turma') {
       return res.status(HTTP_STATUS.NOT_FOUND).json({ error: error.message });
     }
-    if (error.message === MESSAGES.TEACHER_ALREADY_ASSIGNED) {
+    if (error.message === MESSAGES.TEACHER_ALREADY_ASSIGNED || error.message === MESSAGES.TEACHER_NOT_QUALIFIED) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: error.message });
     }
     next(error);
@@ -144,11 +150,14 @@ const unassignTeacher = async (req, res, next) => {
 const getTeachersByClass = async (req, res, next) => {
   try {
     const classId = parseInt(req.params.id);
-    const teachers = await classService.getTeachersByClass(classId);
+    const teachers = await classService.getTeachersByClass(classId, req.user);
     return res.status(HTTP_STATUS.OK).json(teachers);
   } catch (error) {
     if (error.message === MESSAGES.CLASS_NOT_FOUND) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({ error: error.message });
+    }
+    if (error.message === MESSAGES.FORBIDDEN) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ error: error.message });
     }
     next(error);
   }
@@ -189,12 +198,32 @@ const removeDisciplineFromClass = async (req, res, next) => {
 const getDisciplinesByClass = async (req, res, next) => {
   try {
     const classId = parseInt(req.params.id);
-    const disciplines = await classService.getDisciplinesByClass(classId);
+    const disciplines = await classService.getDisciplinesByClass(classId, req.user);
     return res.status(HTTP_STATUS.OK).json(disciplines);
   } catch (error) {
     if (error.message === MESSAGES.CLASS_NOT_FOUND) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({ error: error.message });
     }
+    if (error.message === MESSAGES.FORBIDDEN) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ error: error.message });
+    }
+    next(error);
+  }
+};
+
+// Endpoint interno serviço-a-serviço (consumido pelo MS5 ao validar lançamento
+// de notas). Retorna se o professor leciona aquela class_discipline.
+const checkTeacherAccess = async (req, res, next) => {
+  try {
+    const teacherId = parseInt(req.params.teacherId);
+    const classDisciplineId = parseInt(req.params.classDisciplineId);
+    if (!Number.isInteger(teacherId) || teacherId <= 0 ||
+        !Number.isInteger(classDisciplineId) || classDisciplineId <= 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: 'Parâmetros inválidos' });
+    }
+    const hasAccess = await classService.isTeacherOfClassDiscipline(teacherId, classDisciplineId);
+    return res.status(HTTP_STATUS.OK).json({ hasAccess });
+  } catch (error) {
     next(error);
   }
 };
@@ -213,5 +242,6 @@ module.exports = {
   getTeachersByClass,
   addDisciplineToClass,
   removeDisciplineFromClass,
-  getDisciplinesByClass
+  getDisciplinesByClass,
+  checkTeacherAccess
 };

@@ -32,10 +32,17 @@ const findOne = async (classId, disciplineId) => {
   });
 };
 
-module.exports = { 
-    add, 
-    remove, 
-    findByClass, 
-    findByDiscipline, 
-    findOne 
+const findById = async (classDisciplineId) => {
+  return await prisma.class_disciplines.findUnique({
+    where: { class_discipline_id: classDisciplineId }
+  });
+};
+
+module.exports = {
+    add,
+    remove,
+    findByClass,
+    findByDiscipline,
+    findOne,
+    findById
 };
