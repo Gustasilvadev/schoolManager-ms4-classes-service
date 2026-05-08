@@ -1,7 +1,6 @@
 const classService = require('../services/classService');
 const { HTTP_STATUS, MESSAGES } = require('../utils/constants');
 
-// --- CRUD Turmas ---
 const createClass = async (req, res, next) => {
   try {
     const newClass = await classService.createClass(req.body);
@@ -67,7 +66,6 @@ const deleteClass = async (req, res, next) => {
   }
 };
 
-// --- Matrículas ---
 const enrollStudent = async (req, res, next) => {
   try {
     const classId = parseInt(req.params.id);
@@ -115,7 +113,6 @@ const getStudentsByClass = async (req, res, next) => {
   }
 };
 
-// --- Alocação de Professores ---
 const assignTeacher = async (req, res, next) => {
   try {
     const classId = parseInt(req.params.id);
@@ -163,7 +160,6 @@ const getTeachersByClass = async (req, res, next) => {
   }
 };
 
-// --- Disciplinas por Turma ---
 const addDisciplineToClass = async (req, res, next) => {
   try {
     const classId = parseInt(req.params.id);
@@ -211,8 +207,7 @@ const getDisciplinesByClass = async (req, res, next) => {
   }
 };
 
-// Endpoint interno serviço-a-serviço (consumido pelo MS5 ao validar lançamento
-// de notas). Retorna se o professor leciona aquela class_discipline.
+// Endpoint interno consumido pelo MS5 para validar se o professor leciona aquela class_discipline.
 const checkTeacherAccess = async (req, res, next) => {
   try {
     const teacherId = parseInt(req.params.teacherId);

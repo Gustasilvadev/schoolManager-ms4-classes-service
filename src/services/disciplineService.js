@@ -38,7 +38,6 @@ const deleteDiscipline = async (id) => {
   return true;
 };
 
-// Consulta de turmas que possuem uma disciplina (opcional)
 const getClassesByDiscipline = async (disciplineId) => {
   const discipline = await disciplineRepo.findById(disciplineId);
   if (!discipline) throw new Error(MESSAGES.DISCIPLINE_NOT_FOUND);

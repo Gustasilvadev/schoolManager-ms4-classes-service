@@ -14,7 +14,6 @@ const assertTeacherCanAccessClass = async (classId, user) => {
   if (!link) throw new Error(MESSAGES.FORBIDDEN);
 };
 
-// --- CRUD de Turmas ---
 const createClass = async (data) => {
   const newClass = await classRepo.create(data);
   return newClass;
@@ -65,7 +64,6 @@ const deleteClass = async (id) => {
   return true;
 };
 
-// --- Matrícula de Alunos ---
 const enrollStudent = async (classId, studentId) => {
   const classData = await classRepo.findById(classId);
   if (!classData) throw new Error(MESSAGES.CLASS_NOT_FOUND);
@@ -73,7 +71,6 @@ const enrollStudent = async (classId, studentId) => {
   const existing = await classStudentRepo.findOne(classId, studentId);
   if (existing) throw new Error(MESSAGES.STUDENT_ALREADY_ENROLLED);
 
-  // FUTURO: validar se studentId existe no StudentService (via RabbitMQ)
   const enrollment = await classStudentRepo.enroll(classId, studentId);
   return enrollment;
 };
@@ -97,7 +94,6 @@ const getStudentsByClass = async (classId, currentUser = null) => {
   return students;
 };
 
-// --- Alocação de Professores ---
 const assignTeacher = async (classId, teacherId) => {
   const classData = await classRepo.findById(classId);
   if (!classData) throw new Error(MESSAGES.CLASS_NOT_FOUND);
@@ -105,9 +101,7 @@ const assignTeacher = async (classId, teacherId) => {
   const existing = await classTeacherRepo.findOne(classId, teacherId);
   if (existing) throw new Error(MESSAGES.TEACHER_ALREADY_ASSIGNED);
 
-  // Valida que o professor é habilitado em pelo menos uma disciplina da turma.
-  // Se MS3 estiver indisponível (retorna null), bloqueia a alocação por
-  // segurança — evita alocar professor sem habilitação confirmada.
+  // Sem retorno do MS3 (timeout/null) bloqueia alocação por segurança — evita professor sem habilitação confirmada.
   const teacherDisciplineIds = await getTeacherDisciplineIds(teacherId);
   if (teacherDisciplineIds === null) {
     throw new Error(MESSAGES.TEACHER_NOT_QUALIFIED);
@@ -142,7 +136,6 @@ const getTeachersByClass = async (classId, currentUser = null) => {
   return teachers;
 };
 
-// --- Disciplinas por Turma ---
 const addDisciplineToClass = async (classId, disciplineId) => {
   const classData = await classRepo.findById(classId);
   if (!classData) throw new Error(MESSAGES.CLASS_NOT_FOUND);

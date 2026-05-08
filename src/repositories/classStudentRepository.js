@@ -15,7 +15,7 @@ const remove = async (classId, studentId) => {
 const findByClass = async (classId) => {
   return await prisma.class_students.findMany({
     where: { class_id: classId },
-    include: { classes: true } // ou apenas retornar os IDs
+    include: { classes: true }
   });
 };
 
