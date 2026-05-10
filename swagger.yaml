@@ -155,9 +155,22 @@ paths:
           schema:
             type: integer
             enum: [0, 1, 2]
+          description: |
+            Filtro fino por status. Quando informado, sobrepõe o default.
+            Sem este parâmetro, ADMIN recebe ACTIVE+INACTIVE; TEACHER recebe apenas ACTIVE (ignora este parâmetro).
+        - name: includeDeleted
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: |
+            Quando `true`, inclui turmas com status DELETED (2). Padrão `false`.
+            Aplicável apenas a ADMIN; TEACHER é forçado a ACTIVE.
       responses:
         '200':
-          description: Lista de turmas
+          description: |
+            Lista de turmas. TEACHER recebe apenas suas próprias turmas com status ACTIVE.
+            ADMIN recebe ACTIVE+INACTIVE por padrão (use `includeDeleted` para incluir DELETED).
           content:
             application/json:
               schema:
@@ -261,6 +274,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Class'
+        '400':
+          description: |
+            Turma está deletada (status=2). Não é possível editar.
+            Use `POST /classes/restoreClassById/{id}` para reativar.
         '404':
           description: Turma não encontrada
 
@@ -287,6 +304,43 @@ paths:
                 properties:
                   message:
                     type: string
+        '404':
+          description: Turma não encontrada
+
+  /classes/restoreClassById/{id}:
+    post:
+      tags:
+        - Classes
+      summary: Restaura uma turma deletada (apenas ADMIN)
+      description: |
+        Promove o status da turma de DELETED (2) para ACTIVE (1). Endpoint dedicado
+        para reativação consciente.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Turma restaurada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  class:
+                    $ref: '#/components/schemas/Class'
+        '400':
+          description: Turma não está deletada (nada a restaurar)
+        '401':
+          description: Não autenticado
+        '403':
+          description: Acesso negado (requer papel ADMIN)
         '404':
           description: Turma não encontrada
 
@@ -574,6 +628,17 @@ paths:
           schema:
             type: integer
             enum: [0, 1, 2]
+          description: |
+            Filtro fino por status. Quando informado, sobrepõe o default.
+            Sem este parâmetro, ADMIN recebe ACTIVE+INACTIVE; TEACHER recebe apenas ACTIVE.
+        - name: includeDeleted
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: |
+            Quando `true`, inclui disciplinas com status DELETED (2). Padrão `false`.
+            Aplicável apenas a ADMIN; TEACHER é forçado a ACTIVE.
       responses:
         '200':
           description: Lista de disciplinas
@@ -680,6 +745,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Discipline'
+        '400':
+          description: |
+            Disciplina está deletada (status=2). Não é possível editar.
+            Use `POST /disciplines/restoreDisciplineById/{id}` para reativar.
         '404':
           description: Disciplina não encontrada
 
@@ -706,6 +775,43 @@ paths:
                 properties:
                   message:
                     type: string
+        '404':
+          description: Disciplina não encontrada
+
+  /disciplines/restoreDisciplineById/{id}:
+    post:
+      tags:
+        - Disciplines
+      summary: Restaura uma disciplina deletada (apenas ADMIN)
+      description: |
+        Promove o status da disciplina de DELETED (2) para ACTIVE (1). Endpoint dedicado
+        para reativação consciente.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Disciplina restaurada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  discipline:
+                    $ref: '#/components/schemas/Discipline'
+        '400':
+          description: Disciplina não está deletada (nada a restaurar)
+        '401':
+          description: Não autenticado
+        '403':
+          description: Acesso negado (requer papel ADMIN)
         '404':
           description: Disciplina não encontrada
 

@@ -44,36 +44,82 @@ Para mantermos o histórico limpo e rastreável, este projeto utiliza a especifi
 
 ## 🏫 Classes (Turmas)
 
-| Método | Endpoint                          | Descrição                          | Auth | Body |
-|--------|----------------------------------|------------------------------------|------|------|
-| GET    | `/classes/listClasses`           | Lista todas as turmas              | ✅   | — |
-| GET    | `/classes/listClassById/{id}`    | Busca turma por ID                 | ✅   | — |
-| POST   | `/classes/createClass`           | Cria nova turma                    | ✅   | dados da turma |
-| PUT    | `/classes/updateClass/{id}`      | Atualiza dados da turma            | ✅   | dados da turma |
-| DELETE | `/classes/deleteClass/{id}`      | Deleta turma (lógico)              | ✅   | — |
+| Método | Endpoint                              | Descrição                          | Auth | Role             | Body |
+|--------|---------------------------------------|------------------------------------|------|------------------|------|
+| GET    | `/classes/listClasses`                | Lista turmas. TEACHER: só ACTIVE das suas turmas. ADMIN: ACTIVE+INACTIVE (use `?includeDeleted=true`/`?class_status=N` para variar). | ✅   | ADMIN ou TEACHER | — |
+| GET    | `/classes/listClassById/{id}`         | Busca turma por ID                 | ✅   | ADMIN ou TEACHER | — |
+| POST   | `/classes/createClass`                | Cria nova turma                    | ✅   | ADMIN            | dados da turma |
+| PUT    | `/classes/updateClassById/{id}`       | Atualiza dados da turma (bloqueado se status=DELETED) | ✅   | ADMIN            | dados da turma |
+| DELETE | `/classes/deleteClassById/{id}`       | Deleta turma (soft, status=2)      | ✅   | ADMIN            | — |
+| POST   | `/classes/restoreClassById/{id}`      | Restaura turma deletada (status: 2 → 1) | ✅   | ADMIN            | — |
 
 ---
 
 ## 📚 Disciplines
 
-| Método | Endpoint                               | Descrição                          | Auth | Body |
-|--------|----------------------------------------|------------------------------------|------|------|
-| GET    | `/disciplines/listDisciplines`         | Lista todas as disciplinas         | ✅   | — |
-| GET    | `/disciplines/listDisciplineById/{id}` | Busca disciplina por ID            | ✅   | — |
-| POST   | `/disciplines/createDiscipline`        | Cria nova disciplina               | ✅   | dados da disciplina |
-| PUT    | `/disciplines/updateDiscipline/{id}`   | Atualiza disciplina                | ✅   | dados da disciplina |
-| DELETE | `/disciplines/deleteDiscipline/{id}`   | Deleta disciplina (lógico)         | ✅   | — |
+| Método | Endpoint                                       | Descrição                          | Auth | Role             | Body |
+|--------|------------------------------------------------|------------------------------------|------|------------------|------|
+| GET    | `/disciplines/listDisciplines`                 | Lista disciplinas. ADMIN: ACTIVE+INACTIVE (use `?includeDeleted=true`/`?discipline_status=N`). TEACHER: força ACTIVE. | ✅   | ADMIN            | — |
+| GET    | `/disciplines/listDisciplineById/{id}`         | Busca disciplina por ID            | ✅   | ADMIN ou TEACHER | — |
+| POST   | `/disciplines/createDiscipline`                | Cria nova disciplina               | ✅   | ADMIN            | dados da disciplina |
+| PUT    | `/disciplines/updateDisciplineById/{id}`       | Atualiza disciplina (bloqueado se status=DELETED) | ✅   | ADMIN            | dados da disciplina |
+| DELETE | `/disciplines/deleteDisciplineById/{id}`       | Deleta disciplina (soft, status=2) | ✅   | ADMIN            | — |
+| POST   | `/disciplines/restoreDisciplineById/{id}`      | Restaura disciplina deletada (status: 2 → 1) | ✅   | ADMIN            | — |
+| GET    | `/disciplines/listClassesByDisciplineId/{id}`  | Lista turmas que oferecem a disciplina | ✅ | ADMIN          | — |
+
+### Ciclo de vida de turmas e disciplinas (status)
+
+- `ACTIVE (1)`: registro operacional.
+- `INACTIVE (0)`: pausado/suspenso. Reversível via `PUT`.
+- `DELETED (2)`: encerrado. Update bloqueado. Reativação **apenas** via `POST /restore<Entity>ById/{id}` (ADMIN).
+
+### Filtragem por papel nos endpoints `/list*`
+
+- **ADMIN** (default): retorna ACTIVE + INACTIVE; `?includeDeleted=true` para incluir DELETED, ou `?class_status=N`/`?discipline_status=N` para filtro fino.
+- **TEACHER**: força ACTIVE; query string de status/includeDeleted é ignorada. Em `listClasses`, ainda restringe às turmas atribuídas ao próprio professor.
 
 ---
 
 ## 🔗 Relacionamentos Acadêmicos
 
-| Método | Endpoint                                   | Descrição                                      | Auth | Body |
-|--------|--------------------------------------------|-----------------------------------------------|------|------|
-| POST   | `/classes/linkStudent/{classId}`           | Vincula aluno a uma turma                     | ✅   | student_id |
-| DELETE | `/classes/unlinkStudent/{classId}/{studentId}` | Remove aluno da turma                    | ✅   | — |
-| POST   | `/classes/linkTeacher/{classId}`           | Vincula professor a uma turma                 | ✅   | teacher_id |
-| DELETE | `/classes/unlinkTeacher/{classId}/{teacherId}` | Remove professor da turma               | ✅   | — |
+### Matrícula de alunos
+
+| Método | Endpoint                                  | Descrição                                | Auth | Role             | Body |
+|--------|-------------------------------------------|------------------------------------------|------|------------------|------|
+| POST   | `/classes/enroll/{id}`                    | Matricula aluno na turma                 | ✅   | ADMIN            | `student_id` |
+| DELETE | `/classes/enroll/{id}/{studentId}`        | Remove aluno da turma                    | ✅   | ADMIN            | — |
+| GET    | `/classes/students/{id}`                  | Lista alunos da turma                    | ✅   | ADMIN ou TEACHER | — |
+
+### Alocação de professores
+
+| Método | Endpoint                                       | Descrição                                | Auth | Role             | Body |
+|--------|------------------------------------------------|------------------------------------------|------|------------------|------|
+| POST   | `/classes/assignTeacher/{id}`                  | Aloca professor na turma                 | ✅   | ADMIN            | `teacher_id` |
+| DELETE | `/classes/assignTeacher/{id}/{teacherId}`      | Remove professor da turma                | ✅   | ADMIN            | — |
+| GET    | `/classes/teachers/{id}`                       | Lista professores da turma               | ✅   | ADMIN ou TEACHER | — |
+
+### Disciplinas da turma (turma-disciplina)
+
+| Método | Endpoint                                       | Descrição                                | Auth | Role             | Body |
+|--------|------------------------------------------------|------------------------------------------|------|------------------|------|
+| POST   | `/classes/disciplines/{id}`                    | Associa disciplina à turma               | ✅   | ADMIN            | `discipline_id` |
+| DELETE | `/classes/disciplines/{id}/{disciplineId}`     | Remove disciplina da turma               | ✅   | ADMIN            | — |
+| GET    | `/classes/disciplines/{id}`                    | Lista disciplinas da turma               | ✅   | ADMIN ou TEACHER | — |
+
+> **`enroll` valida o `student_id` no MS2** via Token Propagation — retorna `404 STUDENT_NOT_FOUND` se o aluno não existe ou `503 EXTERNAL_SERVICE_UNAVAILABLE` se o MS2 estiver indisponível.
+>
+> **`assignTeacher` consulta as disciplinas habilitadas no MS3** (cross-MS) e exige interseção com pelo menos uma das disciplinas da turma. Sem habilitação compatível, retorna `400 TEACHER_NOT_QUALIFIED`.
+
+---
+
+## 🔌 Endpoints Internos (Service-to-Service)
+
+Endpoints consumidos por outros microsserviços. Todos exigem JWT propagado (Token Propagation).
+
+| Método | Endpoint                                                       | Auth | Role             | Consumidor | Finalidade                                                  |
+|--------|----------------------------------------------------------------|------|------------------|------------|-------------------------------------------------------------|
+| GET    | `/classes/checkTeacherAccess/{teacherId}/{classDisciplineId}`  | ✅   | ADMIN ou TEACHER | MS5        | Verifica se o professor leciona a `class_discipline`        |
+| GET    | `/classes/listClassDisciplineById/{id}`                        | ✅   | ADMIN ou TEACHER | MS5        | Valida existência de `class_discipline_id` (404 se não existe) |
 
 ---
 
