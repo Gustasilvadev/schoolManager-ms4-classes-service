@@ -27,15 +27,23 @@ const softDelete = async (id) => {
   });
 };
 
+const restore = async (id) => {
+  return await prisma.classes.update({
+    where: { class_id: id },
+    data: { class_status: CLASS_STATUS.ACTIVE }
+  });
+};
+
 const count = async (where = {}) => {
   return await prisma.classes.count({ where });
 };
 
-module.exports = { 
-    findAll, 
-    findById, 
-    create, 
-    update, 
-    softDelete, 
-    count 
+module.exports = {
+    findAll,
+    findById,
+    create,
+    update,
+    softDelete,
+    restore,
+    count
 };

@@ -24,15 +24,23 @@ const softDelete = async (id) => {
   });
 };
 
+const restore = async (id) => {
+  return await prisma.disciplines.update({
+    where: { discipline_id: id },
+    data: { discipline_status: DISCIPLINE_STATUS.ACTIVE }
+  });
+};
+
 const count = async (where = {}) => {
   return await prisma.disciplines.count({ where });
 };
 
-module.exports = { 
-    findAll, 
-    findById, 
+module.exports = {
+    findAll,
+    findById,
     create,
-    update, 
-    softDelete, 
-    count 
+    update,
+    softDelete,
+    restore,
+    count
 };

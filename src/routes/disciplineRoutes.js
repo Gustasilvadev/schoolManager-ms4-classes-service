@@ -9,13 +9,16 @@ const {
 } = require('../middlewares/validationMiddleware');
 
 router.use(authMiddleware);
-router.use(roleMiddleware(['ADMIN']));
 
-router.get('/listDisciplines', disciplineController.getAllDisciplines);
-router.get('/listDisciplineById/:id', disciplineController.getDisciplineById);
-router.post('/createDiscipline', validateCreateDiscipline, disciplineController.createDiscipline);
-router.put('/updateDisciplineById/:id', validateUpdateDiscipline, disciplineController.updateDiscipline);
-router.delete('/deleteDisciplineById/:id', disciplineController.deleteDiscipline);
-router.get('/listClassesByDisciplineId/:id', disciplineController.getClassesByDiscipline);
+const ADMIN_ONLY = roleMiddleware(['ADMIN']);
+const ADMIN_OR_TEACHER = roleMiddleware(['ADMIN', 'TEACHER']);
+
+router.get('/listDisciplines', ADMIN_ONLY, disciplineController.getAllDisciplines);
+router.get('/listDisciplineById/:id', ADMIN_OR_TEACHER, disciplineController.getDisciplineById);
+router.post('/createDiscipline', ADMIN_ONLY, validateCreateDiscipline, disciplineController.createDiscipline);
+router.put('/updateDisciplineById/:id', ADMIN_ONLY, validateUpdateDiscipline, disciplineController.updateDiscipline);
+router.delete('/deleteDisciplineById/:id', ADMIN_ONLY, disciplineController.deleteDiscipline);
+router.post('/restoreDisciplineById/:id', ADMIN_ONLY, disciplineController.restoreDiscipline);
+router.get('/listClassesByDisciplineId/:id', ADMIN_ONLY, disciplineController.getClassesByDiscipline);
 
 module.exports = router;

@@ -3,9 +3,10 @@ const classStudentRepo = require('../repositories/classStudentRepository');
 const classTeacherRepo = require('../repositories/classTeacherRepository');
 const classDisciplineRepo = require('../repositories/classDisciplineRepository');
 const { getTeacherDisciplineIds } = require('../utils/teachersClient');
-const { CLASS_STATUS, MESSAGES } = require('../utils/constants');
+const { findStudentById } = require('../utils/studentsClient');
+const { CLASS_STATUS, MESSAGES, ROLES } = require('../utils/constants');
 
-const isTeacher = (user) => user?.role === 'TEACHER';
+const isTeacher = (user) => user?.role === ROLES.TEACHER;
 
 const assertTeacherCanAccessClass = async (classId, user) => {
   if (!isTeacher(user)) return;
@@ -24,9 +25,9 @@ const getAllClasses = async (filters = {}, page = 1, limit = 10, currentUser = n
   const where = {};
   if (filters.class_name) where.class_name = { contains: filters.class_name };
   if (filters.class_school_year) where.class_school_year = { contains: filters.class_school_year };
-  if (filters.class_status !== undefined) where.class_status = filters.class_status;
 
   if (isTeacher(currentUser)) {
+    where.class_status = CLASS_STATUS.ACTIVE;
     if (!currentUser.teacher_id) {
       return { classes: [], total: 0, page, limit };
     }
@@ -36,6 +37,10 @@ const getAllClasses = async (filters = {}, page = 1, limit = 10, currentUser = n
       return { classes: [], total: 0, page, limit };
     }
     where.class_id = { in: allowedClassIds };
+  } else if (filters.class_status !== undefined) {
+    where.class_status = filters.class_status;
+  } else if (filters.includeDeleted !== true) {
+    where.class_status = { in: [CLASS_STATUS.ACTIVE, CLASS_STATUS.INACTIVE] };
   }
 
   const classes = await classRepo.findAll(skip, limit, where);
@@ -53,6 +58,9 @@ const getClassById = async (id, currentUser = null) => {
 const updateClass = async (id, updateData) => {
   const existing = await classRepo.findById(id);
   if (!existing) throw new Error(MESSAGES.CLASS_NOT_FOUND);
+  if (existing.class_status === CLASS_STATUS.DELETED) {
+    throw new Error(MESSAGES.CANNOT_EDIT_DELETED_CLASS);
+  }
   const updated = await classRepo.update(id, updateData);
   return updated;
 };
@@ -64,9 +72,21 @@ const deleteClass = async (id) => {
   return true;
 };
 
-const enrollStudent = async (classId, studentId) => {
+const restoreClass = async (id) => {
+  const existing = await classRepo.findById(id);
+  if (!existing) throw new Error(MESSAGES.CLASS_NOT_FOUND);
+  if (existing.class_status !== CLASS_STATUS.DELETED) {
+    throw new Error(MESSAGES.NOT_DELETED_CANNOT_RESTORE);
+  }
+  return await classRepo.restore(id);
+};
+
+const enrollStudent = async (classId, studentId, authToken) => {
   const classData = await classRepo.findById(classId);
   if (!classData) throw new Error(MESSAGES.CLASS_NOT_FOUND);
+
+  const student = await findStudentById(studentId, authToken);
+  if (!student) throw new Error(MESSAGES.STUDENT_NOT_FOUND);
 
   const existing = await classStudentRepo.findOne(classId, studentId);
   if (existing) throw new Error(MESSAGES.STUDENT_ALREADY_ENROLLED);
@@ -94,7 +114,7 @@ const getStudentsByClass = async (classId, currentUser = null) => {
   return students;
 };
 
-const assignTeacher = async (classId, teacherId) => {
+const assignTeacher = async (classId, teacherId, authToken) => {
   const classData = await classRepo.findById(classId);
   if (!classData) throw new Error(MESSAGES.CLASS_NOT_FOUND);
 
@@ -102,7 +122,7 @@ const assignTeacher = async (classId, teacherId) => {
   if (existing) throw new Error(MESSAGES.TEACHER_ALREADY_ASSIGNED);
 
   // Sem retorno do MS3 (timeout/null) bloqueia alocação por segurança — evita professor sem habilitação confirmada.
-  const teacherDisciplineIds = await getTeacherDisciplineIds(teacherId);
+  const teacherDisciplineIds = await getTeacherDisciplineIds(teacherId, authToken);
   if (teacherDisciplineIds === null) {
     throw new Error(MESSAGES.TEACHER_NOT_QUALIFIED);
   }
@@ -173,12 +193,19 @@ const isTeacherOfClassDiscipline = async (teacherId, classDisciplineId) => {
   return Boolean(link);
 };
 
+const getClassDisciplineById = async (classDisciplineId) => {
+  const cd = await classDisciplineRepo.findById(classDisciplineId);
+  if (!cd) throw new Error(MESSAGES.CLASS_DISCIPLINE_NOT_FOUND);
+  return cd;
+};
+
 module.exports = {
   createClass,
   getAllClasses,
   getClassById,
   updateClass,
   deleteClass,
+  restoreClass,
   enrollStudent,
   unenrollStudent,
   getStudentsByClass,
@@ -188,5 +215,6 @@ module.exports = {
   addDisciplineToClass,
   removeDisciplineFromClass,
   getDisciplinesByClass,
-  isTeacherOfClassDiscipline
+  isTeacherOfClassDiscipline,
+  getClassDisciplineById
 };
