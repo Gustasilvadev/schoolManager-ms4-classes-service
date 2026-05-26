@@ -175,7 +175,7 @@ const unassignTeacher = async (req, res, next) => {
 const getTeachersByClass = async (req, res, next) => {
   try {
     const classId = parseInt(req.params.id);
-    const teachers = await classService.getTeachersByClass(classId, req.user);
+    const teachers = await classService.getTeachersByClass(classId, req.user, req.headers.authorization);
     return res.status(HTTP_STATUS.OK).json(teachers);
   } catch (error) {
     if (error.message === MESSAGES.CLASS_NOT_FOUND) {

@@ -2,7 +2,7 @@ const classRepo = require('../repositories/classRepository');
 const classStudentRepo = require('../repositories/classStudentRepository');
 const classTeacherRepo = require('../repositories/classTeacherRepository');
 const classDisciplineRepo = require('../repositories/classDisciplineRepository');
-const { getTeacherDisciplineIds } = require('../utils/teachersClient');
+const { getTeacherDisciplineIds, getTeacherById } = require('../utils/teachersClient');
 const { findStudentById } = require('../utils/studentsClient');
 const { CLASS_STATUS, MESSAGES, ROLES } = require('../utils/constants');
 
@@ -151,12 +151,22 @@ const unassignTeacher = async (classId, teacherId) => {
   return true;
 };
 
-const getTeachersByClass = async (classId, currentUser = null) => {
+const getTeachersByClass = async (classId, currentUser = null, authToken = null) => {
   const classData = await classRepo.findById(classId);
   if (!classData) throw new Error(MESSAGES.CLASS_NOT_FOUND);
   await assertTeacherCanAccessClass(classId, currentUser);
   const teachers = await classTeacherRepo.findByClass(classId);
-  return teachers;
+  const enriched = await Promise.all(
+    teachers.map(async (t) => {
+      const details = authToken ? await getTeacherById(t.teacher_id, authToken) : null;
+      return {
+        ...t,
+        teacher_name: details?.teacher_name ?? null,
+        teacher_email: details?.teacher_email ?? null,
+      };
+    })
+  );
+  return enriched;
 };
 
 const addDisciplineToClass = async (classId, disciplineId) => {
