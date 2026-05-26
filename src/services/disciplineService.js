@@ -3,7 +3,10 @@ const classDisciplineRepo = require('../repositories/classDisciplineRepository')
 const { DISCIPLINE_STATUS, MESSAGES, ROLES } = require('../utils/constants');
 
 const createDiscipline = async (data) => {
-  const newDiscipline = await disciplineRepo.create(data);
+  const newDiscipline = await disciplineRepo.create({
+    ...data,
+    discipline_status: data.discipline_status ?? DISCIPLINE_STATUS.ACTIVE,
+  });
   return newDiscipline;
 };
 

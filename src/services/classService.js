@@ -16,7 +16,10 @@ const assertTeacherCanAccessClass = async (classId, user) => {
 };
 
 const createClass = async (data) => {
-  const newClass = await classRepo.create(data);
+  const newClass = await classRepo.create({
+    ...data,
+    class_status: data.class_status ?? CLASS_STATUS.ACTIVE,
+  });
   return newClass;
 };
 
