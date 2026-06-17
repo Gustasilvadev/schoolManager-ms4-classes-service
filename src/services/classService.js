@@ -109,12 +109,33 @@ const unenrollStudent = async (classId, studentId) => {
   return true;
 };
 
-const getStudentsByClass = async (classId, currentUser = null) => {
+const getStudentsByClass = async (classId, currentUser = null, authToken = null) => {
   const classData = await classRepo.findById(classId);
   if (!classData) throw new Error(MESSAGES.CLASS_NOT_FOUND);
   await assertTeacherCanAccessClass(classId, currentUser);
   const students = await classStudentRepo.findByClass(classId);
-  return students;
+
+  const enriched = await Promise.all(
+    students.map(async (s) => {
+      try {
+        const student = await findStudentById(s.student_id, authToken);
+        return {
+          class_student_id: s.class_student_id,
+          class_id: s.class_id,
+          student_id: s.student_id,
+          student_name: student?.student_name ?? null,
+          student_email: student?.student_email ?? null,
+        };
+      } catch {
+        return {
+          class_student_id: s.class_student_id,
+          class_id: s.class_id,
+          student_id: s.student_id,
+        };
+      }
+    }),
+  );
+  return enriched;
 };
 
 const assignTeacher = async (classId, teacherId, authToken) => {
