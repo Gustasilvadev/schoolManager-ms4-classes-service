@@ -128,7 +128,7 @@ const unenrollStudent = async (req, res, next) => {
 const getStudentsByClass = async (req, res, next) => {
   try {
     const classId = parseInt(req.params.id);
-    const students = await classService.getStudentsByClass(classId, req.user);
+    const students = await classService.getStudentsByClass(classId, req.user, req.headers.authorization);
     return res.status(HTTP_STATUS.OK).json(students);
   } catch (error) {
     if (error.message === MESSAGES.CLASS_NOT_FOUND) {

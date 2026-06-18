@@ -405,7 +405,13 @@ paths:
     get:
       tags:
         - Enrollments
-      summary: Lista alunos matriculados na turma
+      summary: Lista alunos matriculados na turma (com nome, e-mail e foto)
+      description: |
+        Retorna as matrículas da turma **enriquecidas** com `student_name`,
+        `student_email` e `student_photo`, obtidos do MS2 (StudentService) via
+        `GET /students/listStudentById/{id}` com Token Propagation — uma chamada por aluno.
+        Falha pontual ao consultar um aluno degrada apenas aquele registro (campos `null`),
+        sem derrubar a lista inteira. Acesso: ADMIN ou TEACHER (o professor apenas nas suas turmas).
       security:
         - bearerAuth: []
       parameters:
@@ -416,7 +422,7 @@ paths:
             type: integer
       responses:
         '200':
-          description: Lista de matrículas
+          description: Lista de matrículas enriquecidas
           content:
             application/json:
               schema:
@@ -424,10 +430,34 @@ paths:
                 items:
                   type: object
                   properties:
-                    student_id:
+                    class_student_id:
                       type: integer
+                      example: 10
                     class_id:
                       type: integer
+                      example: 3
+                    student_id:
+                      type: integer
+                      example: 42
+                    student_name:
+                      type: string
+                      nullable: true
+                      example: "João Silva"
+                    student_email:
+                      type: string
+                      format: email
+                      nullable: true
+                      example: "joao@escola.com"
+                    student_photo:
+                      type: string
+                      format: uri
+                      nullable: true
+                      description: "URL pública da foto do aluno (hospedada no Cloudinary)."
+                      example: "https://res.cloudinary.com/<cloud>/image/upload/v1/schoolmanager/students/42.jpg"
+        '403':
+          description: Acesso negado (professor sem acesso à turma)
+        '404':
+          description: Turma não encontrada
 
   # ==================== ALOCAÇÃO DE PROFESSORES (TEACHER ASSIGNMENTS) ====================
   /classes/assignTeacher/{id}:

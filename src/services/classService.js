@@ -109,12 +109,29 @@ const unenrollStudent = async (classId, studentId) => {
   return true;
 };
 
-const getStudentsByClass = async (classId, currentUser = null) => {
+const getStudentsByClass = async (classId, currentUser = null, authToken = null) => {
   const classData = await classRepo.findById(classId);
   if (!classData) throw new Error(MESSAGES.CLASS_NOT_FOUND);
   await assertTeacherCanAccessClass(classId, currentUser);
   const students = await classStudentRepo.findByClass(classId);
-  return students;
+
+  const enriched = await Promise.all(
+    students.map(async (s) => {
+      let details = null;
+      try {
+        details = authToken ? await findStudentById(s.student_id, authToken) : null;
+      } catch (err) {
+        console.error(`[MS4] Falha ao enriquecer aluno ${s.student_id}:`, err.message);
+      }
+      return {
+        ...s,
+        student_name: details?.student_name ?? null,
+        student_email: details?.student_email ?? null,
+        student_photo: details?.student_photo ?? null,
+      };
+    })
+  );
+  return enriched;
 };
 
 const assignTeacher = async (classId, teacherId, authToken) => {

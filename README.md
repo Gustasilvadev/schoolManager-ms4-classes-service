@@ -88,7 +88,7 @@ Para mantermos o histórico limpo e rastreável, este projeto utiliza a especifi
 |--------|-------------------------------------------|------------------------------------------|------|------------------|------|
 | POST   | `/classes/enroll/{id}`                    | Matricula aluno na turma                 | ✅   | ADMIN            | `student_id` |
 | DELETE | `/classes/enroll/{id}/{studentId}`        | Remove aluno da turma                    | ✅   | ADMIN            | — |
-| GET    | `/classes/students/{id}`                  | Lista alunos da turma                    | ✅   | ADMIN ou TEACHER | — |
+| GET    | `/classes/students/{id}`                  | Lista alunos da turma (enriquecido com `student_name`, `student_email`, `student_photo` via MS2) | ✅   | ADMIN ou TEACHER | — |
 
 ### Alocação de professores
 
@@ -109,6 +109,8 @@ Para mantermos o histórico limpo e rastreável, este projeto utiliza a especifi
 > **`enroll` valida o `student_id` no MS2** via Token Propagation — retorna `404 STUDENT_NOT_FOUND` se o aluno não existe ou `503 EXTERNAL_SERVICE_UNAVAILABLE` se o MS2 estiver indisponível.
 >
 > **`assignTeacher` consulta as disciplinas habilitadas no MS3** (cross-MS) e exige interseção com pelo menos uma das disciplinas da turma. Sem habilitação compatível, retorna `400 TEACHER_NOT_QUALIFIED`.
+>
+> **`students/{id}` enriquece cada matrícula** com `student_name`, `student_email` e `student_photo` consultando o MS2 (`listStudentById`, aberto a ADMIN/TEACHER) — uma chamada por aluno, com Token Propagation. Falha pontual retorna esses campos como `null` para aquele aluno, sem quebrar a lista.
 
 ---
 
